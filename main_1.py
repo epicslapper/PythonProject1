@@ -19,7 +19,6 @@ if st.button("Validate"):
 
     if not match.empty:
         st.success("ID is valid")
-
         row = match.iloc[0]
 
         st.subheader("Matched user")
@@ -28,9 +27,15 @@ if st.button("Validate"):
         st.write(f"**Date of birth:** {row['Geboortedatum']}")
         st.write(f"**Email:** {row['E-mail']}")
 
+        # -------------------------------
+        # Pay Now Button
+        # -------------------------------
+        product_id = 13  # Your ticket product ID
+        checkout_url = f"https://ticketsales.infinityfree.me/checkout/?add-to-cart={product_id}&billing_address_2={user_id}"
+
         st.markdown(
             f"""
-            <a href="https://nextthings.s3-tastewp.com/checkout/?add-to-cart=19&football_id={user_id}" target="_blank">
+            <a href="{checkout_url}" target="_blank">
                 <button style="padding:10px 20px;font-size:16px;">
                     Pay Now
                 </button>
