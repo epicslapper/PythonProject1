@@ -1,4 +1,4 @@
-Relatiecode,Volledige naam,Geboortedatum,E-mail,ticket_ordered,paid_date,future_col1,future_col2
+Relatiecode,Volledige naam,Geboortedatum,E-mail,ticket_ordered,paid_flag,last_callback_url,future_col
 TFFL49I,"Jansen, Sid",4-2-2012,dwhjansen@hotmail.com,,,,
 TKRL41D,"Jansen, Mike",15-1-2018,jansen.rt@gmail.com,,,,
 FXPV78Q,"Jansen, Robert",22-1-1980,jansen.rt@gmail.com,,,,

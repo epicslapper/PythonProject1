@@ -1,92 +1,105 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import datetime
-import matplotlib.pyplot as plt
+
+# -------------------------------
+# Constants
+# -------------------------------
+CSV_FILE = "vdz_admin.csv"
+LOG_FILE = "url_callbacks.log"
+DEFAULT_COLUMNS = ["ticket_ordered", "paid_flag", "last_callback_url", "future_col"]
 
 # -------------------------------
 # Functions
 # -------------------------------
-
-def load_csv(file_path=None):
-    """
-    Load CSV from given path or via file uploader.
-    """
-    if file_path:
-        df = pd.read_csv(file_path)
+def load_csv(file_path):
+    """Load CSV if exists, else return empty dataframe"""
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path, dtype=str)
+        # Ensure extra columns exist
+        for col in DEFAULT_COLUMNS:
+            if col not in df.columns:
+                df[col] = ""
+        return df
     else:
-        uploaded_file = st.file_uploader("Upload club CSV (max 2000 rows)", type=["csv"])
-        if uploaded_file is not None:
-            df = pd.read_csv(uploaded_file)
+        return pd.DataFrame(columns=["Relatiecode", "Volledige naam", "Geboortedatum", "E-mail"] + DEFAULT_COLUMNS)
+
+def upload_csv():
+    """Allow user to upload a CSV file and store it locally"""
+    uploaded_file = st.file_uploader("Upload new club member CSV (optional)", type=["csv"])
+    if uploaded_file is not None:
+        df_new = pd.read_csv(uploaded_file, dtype=str)
+        for col in DEFAULT_COLUMNS:
+            if col not in df_new.columns:
+                df_new[col] = ""
+        df_new.to_csv(CSV_FILE, index=False)
+        st.success("CSV uploaded and saved!")
+        return df_new
+    return None
+
+def update_from_url(df):
+    """Check Streamlit URL params and update dataframe"""
+    params = st.query_params  # Only use st.query_params
+    raw_url = f"?{'&'.join([f'{k}={v[0]}' for k,v in params.items()])}" if params else ""
+    if raw_url:
+        with open(LOG_FILE, "a") as f:
+            f.write(raw_url + "\n")
+
+    if "member_id" in params:
+        member_id = params["member_id"][0]
+        paid_flag = params.get("paid", ["0"])[0]
+
+        if member_id in df["Relatiecode"].values:
+            df.loc[df["Relatiecode"] == member_id, "ticket_ordered"] = "yes"
+            df.loc[df["Relatiecode"] == member_id, "paid_flag"] = paid_flag
+            df.loc[df["Relatiecode"] == member_id, "last_callback_url"] = raw_url
+            st.success(f"Callback received: member {member_id}, paid={paid_flag}")
         else:
-            return None
-    df["Relatiecode"] = df["Relatiecode"].astype(str)
-    extra_cols = ["ticket_ordered", "paid_date", "future_col1", "future_col2"]
-    for col in extra_cols:
-        if col not in df.columns:
-            df[col] = ""
+            st.warning(f"Member ID {member_id} not found in database")
     return df
 
-def save_csv(df, file_path="vdz_admin.csv"):
-    df.to_csv(file_path, index=False)
-    st.success(f"CSV saved to {os.path.abspath(file_path)}")
-
-def update_payment_status(df, member_id):
-    idx = df[df["Relatiecode"] == member_id].index
-    if len(idx) > 0:
-        df.at[idx[0], "ticket_ordered"] = "Yes"
-        df.at[idx[0], "paid_date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        st.success(f"Marked {member_id} as paid.")
-    else:
-        st.error(f"Member ID {member_id} not found.")
-
-def display_member_table(df):
-    st.subheader("Full Member Data")
+def show_dataframe(df):
+    """Show full dataframe"""
+    st.subheader("Club Members Database")
     st.dataframe(df)
 
-def plot_sales(df):
-    sales_count = df["ticket_ordered"].value_counts()
-    fig, ax = plt.subplots()
-    ax.bar(sales_count.index, sales_count.values, color=["orange", "green"])
-    ax.set_ylabel("Number of Members")
-    ax.set_title("Ticket Sales Overview")
-    st.pyplot(fig)
+def show_sales_graph(df):
+    """Show simple graph of ticket sales"""
+    st.subheader("Ticket Sales Overview")
+    sales_df = df["ticket_ordered"].value_counts().reindex(["yes", "no"], fill_value=0)
+    st.bar_chart(sales_df)
 
-def handle_query_params(df):
-    """
-    Modern Streamlit API using st.query_params
-    Example URL: https://tickets-backoffice.streamlit.app/?member_id=QPNR392&paid=1
-    """
-    params = st.query_params
-    if "member_id" in params and "paid" in params:
-        member_id = params["member_id"][0]
-        paid_flag = params["paid"][0]
-        if paid_flag == "1":
-            update_payment_status(df, member_id)
-            save_csv(df)
+def save_df(df):
+    """Persist dataframe to CSV"""
+    df.to_csv(CSV_FILE, index=False)
+    st.info("Database saved!")
 
 # -------------------------------
-# Main App
+# Main
 # -------------------------------
-
 def main():
-    st.title("Ticket Sales Admin / Backoffice")
+    st.title("Club Ticket Admin Backoffice")
 
-    df = load_csv()
-    if df is None:
-        st.info("Please upload a CSV to begin.")
-        return
+    # Step 1: Load existing CSV
+    df = load_csv(CSV_FILE)
 
-    # Handle URL callback
-    handle_query_params(df)
+    # Step 2: Optional CSV upload
+    df_new = upload_csv()
+    if df_new is not None:
+        df = df_new  # replace with uploaded CSV but keep extra columns
 
-    # Display table and sales graph
-    display_member_table(df)
-    plot_sales(df)
+    # Step 3: Update from URL if callback
+    df = update_from_url(df)
 
-    # Manual save button
-    if st.button("Save CSV"):
-        save_csv(df)
+    # Step 4: Show dataframe
+    show_dataframe(df)
+
+    # Step 5: Show sales graph
+    show_sales_graph(df)
+
+    # Step 6: Save button
+    if st.button("Save Database"):
+        save_df(df)
 
 if __name__ == "__main__":
     main()
