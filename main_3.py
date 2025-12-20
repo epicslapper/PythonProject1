@@ -22,8 +22,8 @@ def display_user_info(df, member_id):
 
 def show_pay_button(member_id):
     checkout_url = (
-        f"https://ticketsales.infinityfree.me/checkout/"
-        f"?add-to-cart=13&football_id={member_id}"
+            "https://ticketsales.infinityfree.me/checkout/"
+            "?add-to-cart=13&member_id=" + member_id
     )
 
     st.markdown(
@@ -60,3 +60,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+    # checkout_url = (
+    # f"https://ticketsales.infinityfree.me/checkout/"
+    # f"?add-to-cart=13&football_id={member_id}"-------------------------------
+    #   )
