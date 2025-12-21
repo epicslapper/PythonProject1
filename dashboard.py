@@ -1,29 +1,38 @@
+# dashboard.py
+"""
+Ticket Sales Dashboard
+Admin dashboard to view ticket sales, totals, and graphs.
+"""
+
 import streamlit as st
 import pandas as pd
-import os
+import matplotlib.pyplot as plt
+from tickets_database import load_database_1_load_csv
 
-CSV_FILE = "vdz_admin.csv"
+def summarize_ticket_sales_1_total(df):
+    """Return total tickets sold and percentage."""
+    total_members = len(df)
+    tickets_sold = df["ticket_ordered"].value_counts().get("yes", 0)
+    return tickets_sold, total_members
 
-def load_csv():
-    if os.path.exists(CSV_FILE):
-        return pd.read_csv(CSV_FILE, dtype=str)
-    else:
-        st.error("Database CSV not found.")
-        return pd.DataFrame()
-
-def display_stats(df):
-    st.subheader("Ticket Sales Summary")
-    sold_count = df["ticket_ordered"].value_counts().get("yes", 0)
-    st.write(f"Total tickets sold: {sold_count}")
-    st.bar_chart(df["ticket_ordered"].map(lambda x: 1 if x=="yes" else 0))
+def plot_ticket_sales_2_graph(df):
+    """Generate a simple bar chart of sold vs not sold tickets."""
+    sold = df["ticket_ordered"].value_counts().get("yes", 0)
+    not_sold = df["ticket_ordered"].value_counts().get("no", len(df) - sold)
+    fig, ax = plt.subplots()
+    ax.bar(["Sold", "Not Sold"], [sold, not_sold], color=["green", "red"])
+    ax.set_ylabel("Number of Tickets")
+    ax.set_title("Ticket Sales Overview")
+    st.pyplot(fig)
 
 def main():
-    st.title("Ticket Admin Dashboard")
-    df = load_csv()
-    if not df.empty:
-        st.subheader("Database Preview")
-        st.dataframe(df)
-        display_stats(df)
+    st.title("Ticket Sales Admin Dashboard")
+    df = load_database_1_load_csv()
+    tickets_sold, total_members = summarize_ticket_sales_1_total(df)
+    st.write(f"Tickets sold: {tickets_sold} / {total_members}")
+    st.subheader("Detailed Ticket Database")
+    st.dataframe(df)
+    plot_ticket_sales_2_graph(df)
 
 if __name__ == "__main__":
     main()
