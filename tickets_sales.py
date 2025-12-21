@@ -1,4 +1,4 @@
-# tickets-sales.py
+# tickets_sales.py
 """
 Tickets Sales App
 Validates member ID and directs to WooCommerce checkout.
