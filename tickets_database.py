@@ -1,4 +1,4 @@
-# tickets-database.py
+# tickets_database.py
 """
 Tickets Database Manager
 Manages loading, saving, and updating membership CSV.

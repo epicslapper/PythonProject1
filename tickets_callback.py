@@ -1,4 +1,4 @@
-# tickets-callback.py
+# tickets_callback.py
 """
 Ticket URL Callback Processor
 Receives member_id and payment confirmation from WordPress.

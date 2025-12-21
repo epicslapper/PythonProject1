@@ -1,4 +1,4 @@
-# tickets-dashboard.py
+# tickets_dashboard.py
 """
 Tickets Dashboard
 Displays ticket sales summary and statistics.
