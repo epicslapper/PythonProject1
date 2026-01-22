@@ -1,73 +1,73 @@
 import streamlit as st
 import pandas as pd
+import csv
+import io
+import os
 
-# -------------------------------
-# Functions
-# -------------------------------
-def load_data():
-    df = pd.read_csv("vdz.csv")
-    df["Relatiecode"] = df["Relatiecode"].astype(str)
-    return df
+def detect_delimiter(file_path_or_content):
+    if isinstance(file_path_or_content, str) and os.path.exists(file_path_or_content):
+        with open(file_path_or_content, 'r', encoding='utf-8') as f:
+            first_line = f.readline()
+    else:
+        first_line = file_path_or_content.splitlines()[0] if '\n' in file_path_or_content else file_path_or_content
+    return ';' if ';' in first_line and first_line.count(';') > first_line.count(',') else ','
+
+@st.cache_data
+def load_members():
+    if os.path.exists("vdz.csv"):
+        delim = detect_delimiter("vdz.csv")
+        df = pd.read_csv("vdz.csv", sep=delim, dtype=str, quoting=csv.QUOTE_MINIMAL, encoding='utf-8')
+        df["Relatiecode"] = df["Relatiecode"].astype(str).str.strip()
+        st.info(f"Ledenbestand geladen: {len(df)} leden (delimiter: {delim})")
+        return df
+    else:
+        st.error("vdz.csv niet gevonden.")
+        return pd.DataFrame()
 
 def validate_member(df, member_id):
-    return not df[df["Relatiecode"] == member_id].empty
+    return member_id.strip() in df["Relatiecode"].values
 
 def display_user_info(df, member_id):
-    row = df[df["Relatiecode"] == member_id].iloc[0]
-    st.subheader("Matched Member")
+    row = df[df["Relatiecode"] == member_id.strip()].iloc[0]
+    st.subheader("Gevonden lid")
     st.write(f"**Relatiecode:** {row['Relatiecode']}")
-    st.write(f"**Name:** {row['Volledige naam']}")
-    st.write(f"**Date of Birth:** {row['Geboortedatum']}")
-    st.write(f"**Email:** {row['E-mail']}")
+    st.write(f"**Naam:** {row['Volledige naam']}")
+    st.write(f"**Geboortedatum:** {row['Geboortedatum']}")
+    st.write(f"**E-mail:** {row['E-mail']}")
 
 def show_pay_button(member_id):
+    # Voor nu nog je oude WordPress link – later vervangen door directe Mollie
     checkout_url = (
-            "https://ticketsales.infinityfree.me/checkout/"
-            "?add-to-cart=13&member_id=" + member_id
+        f"https://ticketsales.infinityfree.me/checkout/"
+        f"?add-to-cart=13&member_id={member_id}"
     )
-
     st.markdown(
         f"""
         <a href="{checkout_url}" target="_blank">
-            <button style="padding:12px 24px;font-size:16px;">
-                Pay €10 – Buy Ticket
+            <button style="background:#cc0000;color:white;padding:12px 24px;font-size:18px;border:none;border-radius:6px;cursor:pointer;">
+                Betaal €10 – Koop Ticket
             </button>
         </a>
         """,
         unsafe_allow_html=True
     )
 
-def debug_dump(df):
-    # intentionally empty in main app
-    pass
-
-# -------------------------------
-# Main App
-# -------------------------------
 def main():
-    st.title("Club Ticket Validation")
+    st.title("Club Ticket Validatie")
 
-    df = load_data()
-    user_id = st.text_input("Enter your Relatiecode / Club ID")
+    df = load_members()
+    if df.empty:
+        return
 
-    if st.button("Validate"):
+    user_id = st.text_input("Voer je Relatiecode in", help="Zoals in Sportlink export (bijv. TFFL49I)")
+
+    if st.button("Valideer"):
         if validate_member(df, user_id):
-            st.success("ID is valid")
+            st.success("Relatiecode geldig!")
             display_user_info(df, user_id)
             show_pay_button(user_id)
         else:
-            st.error("Invalid ID")
+            st.error("Relatiecode niet gevonden — controleer aub.")
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-    # checkout_url = (
-    # f"https://ticketsales.infinityfree.me/checkout/"
-    # f"?add-to-cart=13&football_id={member_id}"-------------------------------
-    #   )
